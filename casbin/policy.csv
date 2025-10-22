@@ -1,0 +1,21 @@
+# Roles → permissions
+p, org_admin, org:acme, view
+p, editor, project:payments, update
+p, viewer, project:payments, view
+p, project_promoter, project:payments, promote
+p, promoter_env_stage, env:acme/staging, deploy_to
+
+# Users → roles
+g, alice, org_admin
+g, bob,   editor
+g, cara,  promoter
+g, teamA, viewer
+g, teamDevOps, project_promoter
+g, teamDevOps, promoter_env_stage
+
+# Resource hierarchy
+g2, project:payments, org:acme
+g2, env:staging, org:acme
+g2, component:billing, project:payments
+g2, component:stripe, project:payments
+g2, component:hr-management, project:hr
