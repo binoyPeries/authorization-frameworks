@@ -1,0 +1,63 @@
+model
+  schema 1.1
+
+type user
+
+type group
+  relations
+    define member: [user]
+
+type org
+  relations
+    define viewer: [user, group#member]
+    define member: [user, group#member]
+    define admin:  [user, group#member]
+
+    define can_view: viewer or member or admin
+    define can_update: admin
+    define can_manage_members: admin
+    define can_create_project: admin
+    define can_create_env: admin
+    define can_read_audit: admin
+
+type env
+  relations
+    define parent: [org]
+
+    define viewer:   [user, group#member]
+    define editor:   [user, group#member]
+    define deployer: [user, group#member]
+
+    define can_view: viewer or can_view from parent
+    define can_update: editor or admin from parent
+    define can_deploy_to: deployer 
+
+type project
+  relations
+    define parent: [org]
+
+    define owner:    [user, group#member]
+    define editor:   [user, group#member]
+    define viewer:   [user, group#member]
+    define developer:[user, group#member]
+    define promoter: [user, group#member]
+
+    define can_view: viewer or editor or developer or promoter or can_view from parent
+    define can_update: editor or owner or developer
+    define can_create_component: editor or owner
+    define can_delete_component: owner
+    define can_manage_members: owner
+
+type component
+  relations
+    define parent: [project]
+
+    define admin:     [user, group#member] or owner from parent
+    define developer: [user, group#member] or developer from parent
+    define promoter:  [user, group#member] or promoter from parent
+    define viewer:    [user, group#member] or viewer from parent
+
+    define can_view: viewer or developer or promoter or admin or can_view from parent
+    define can_update: developer or admin
+    define can_deploy: developer 
+    define can_promote: promoter 

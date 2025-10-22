@@ -1,0 +1,116 @@
+{
+  "writes": {
+    "tuple_keys": [
+      {
+        "user": "user:alice",
+        "relation": "admin",
+        "object": "org:acme"
+      },
+      {
+        "user": "user:bob",
+        "relation": "member",
+        "object": "org:acme"
+      },
+      {
+        "user": "user:dan",
+        "relation": "member",
+        "object": "org:acme"
+      },
+      {
+        "user": "user:alice",
+        "relation": "member",
+        "object": "group:teamA"
+      },
+      {
+        "user": "user:dan",
+        "relation": "member",
+        "object": "group:devops"
+      },
+      {
+        "user": "user:bob",
+        "relation": "member",
+        "object": "group:teamB"
+      },
+      {
+        "user": "org:acme",
+        "relation": "parent",
+        "object": "env:prod"
+      },
+      {
+        "user": "org:acme",
+        "relation": "parent",
+        "object": "env:dev"
+      },
+      {
+        "user": "org:acme",
+        "relation": "parent",
+        "object": "env:stage"
+      },
+      {
+        "user": "org:acme",
+        "relation": "parent",
+        "object": "project:project1"
+      },
+      {
+        "user": "org:acme",
+        "relation": "parent",
+        "object": "project:project2"
+      },
+      {
+        "user": "org:acme",
+        "relation": "parent",
+        "object": "project:project3"
+      },
+      {
+        "user": "project:project1",
+        "relation": "parent",
+        "object": "component:project1-component1"
+      },
+      {
+        "user": "project:project1",
+        "relation": "parent",
+        "object": "component:project1-component2"
+      },
+      {
+        "user": "project:project2",
+        "relation": "parent",
+        "object": "component:project2-component1"
+      },
+      {
+        "user": "project:project2",
+        "relation": "parent",
+        "object": "component:project2-component2"
+      },
+      {
+        "user": "project:project3",
+        "relation": "parent",
+        "object": "component:project3-component1"
+      },
+      {
+        "user": "project:project3",
+        "relation": "parent",
+        "object": "component:project3-component2"
+      },
+      {
+        "user": "group:teamA#member",
+        "relation": "developer",
+        "object": "project:project1"
+      },
+      {
+        "user": "group:teamB#member",
+        "relation": "developer",
+        "object": "project:project2"
+      },
+      {
+        "user": "group:devops#member",
+        "relation": "deployer",
+        "object": "env:stage"
+      },
+      {
+        "user": "group:devops#member",
+        "relation": "promoter",
+        "object": "project:project1"
+      }
+    ]
+  }
+}
