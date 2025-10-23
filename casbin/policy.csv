@@ -1,5 +1,5 @@
 # Roles → permissions
-p, org_admin, org:acme, view
+p, org_admin, org:acme, *
 p, editor, project:payments, update
 p, viewer, project:payments, view
 p, project_promoter, project:payments, promote

@@ -41,7 +41,7 @@ func testAccessChecks(enforcer *casbin.Enforcer) {
 	}{
 		{ // derived from org level role
 			"Alice can deploy payment components as admin",
-			"alice", "component:billing", "view",
+			"alice", "component:billing", "deploy",
 		},
 		{ // derived from project level role
 			"full read access to dev-team on all components in projectA",
