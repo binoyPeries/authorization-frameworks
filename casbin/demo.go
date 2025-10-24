@@ -8,26 +8,14 @@ import (
 )
 
 func main() {
-	// Create enforcer with Option 3 model and policies
-	enforcer, err := casbin.NewEnforcer("model.conf", "policy.csv")
+	// Create enforcer with Option 2 model and policies
+	enforcer, err := casbin.NewEnforcer("option2/model.conf", "option2/policy.csv")
 	if err != nil {
 		log.Fatalf("Error creating enforcer: %v", err)
 	}
 	// Requirement 1: Check whether a user can perform action X on resource Y
 	testAccessChecks(enforcer)
 
-	// Requirement 2: Get permissions for a given user (for UI)
-	// testGetUserPermissions(enforcer)
-
-	// fmt.Println("\n" + strings.Repeat("=", 80) + "\n")
-
-	// // Requirement 3: Get allowed resource instances for a user
-	// testGetAllowedResources(enforcer)
-
-	// fmt.Println("\n" + strings.Repeat("=", 80) + "\n")
-
-	// // Requirement 4: Demo how PE can create mappings
-	// demonstratePEMapping(enforcer)
 }
 
 // Requirement: Check whether user can perform action X on resource Y
@@ -41,11 +29,11 @@ func testAccessChecks(enforcer *casbin.Enforcer) {
 	}{
 		{ // derived from org level role
 			"Alice can deploy payment components as admin",
-			"alice", "component:billing", "deploy",
+			"alice", "component:billing", "view",
 		},
 		{ // derived from project level role
 			"full read access to dev-team on all components in projectA",
-			"teamA", "component:billing", "view",
+			"teamA", "component:acme/payments/billing", "view",
 		},
 		// promotion check, need two checks
 		{

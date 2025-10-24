@@ -1,7 +1,7 @@
 # Roles → permissions
-p, org_admin, org:acme, *
+p, org_admin, org:acme, *ij
 p, editor, project:payments, update
-p, viewer, project:payments, view
+p, viewera, project:payments, view
 p, project_promoter, project:payments, promote
 p, promoter_env_stage, env:acme/staging, deploy_to
 

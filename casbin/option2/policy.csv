@@ -1,0 +1,7 @@
+p, org_admin, org:acme, *
+p, role:payments_viewer, component:acme/payments/*, view
+p, role:payments_editor, component:acme/payments/*, update
+
+g, alice, org_admin
+g, teamA, role:payments_viewer
+

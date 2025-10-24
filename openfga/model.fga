@@ -20,17 +20,7 @@ type org
     define can_create_env: admin
     define can_read_audit: admin
 
-type env
-  relations
-    define parent: [org]
 
-    define viewer:   [user, group#member]
-    define editor:   [user, group#member]
-    define deployer: [user, group#member]
-
-    define can_view: viewer or can_view from parent
-    define can_update: editor or admin from parent
-    define can_deploy_to: deployer 
 
 type project
   relations
@@ -44,7 +34,7 @@ type project
 
     define can_view: viewer or editor or developer or promoter or can_view from parent
     define can_update: editor or owner or developer
-    define can_create_component: editor or owner
+    define can_create_component: editor 
     define can_delete_component: owner
     define can_manage_members: owner
 
@@ -61,3 +51,14 @@ type component
     define can_update: developer or admin
     define can_deploy: developer 
     define can_promote: promoter 
+type env
+  relations
+    define parent: [org]
+
+    define viewer:   [user, group#member]
+    define editor:   [user, group#member]
+    define deployer: [user, group#member]
+
+    define can_view: viewer or can_view from parent
+    define can_update: editor or admin from parent
+    define can_deploy_to: deployer 
