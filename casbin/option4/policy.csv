@@ -1,0 +1,19 @@
+
+p, role:viewer, component, view
+
+p, role:developer, component, (view|deploy)
+p, role:proj-deployer, component, deploy
+
+p, role:project_manager, project, (view|create|delete)
+
+p, role:platform_engineer, component, (view|deploy|rollback)
+
+p, role:deployer, env, deploy
+
+p, role:admin, *, *
+
+
+g, group:teamA, role:developer, org:acme/project:payments
+g, group:teamB, role:proj-deployer, org:acme
+g, group:teamC, role:developer, org:acme/project:payments/component:hello
+g, group:teamD, role:deployer, org:acme/env:production
