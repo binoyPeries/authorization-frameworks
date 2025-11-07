@@ -15,5 +15,8 @@ p, role:admin, *, *
 
 g, group:teamA, role:developer, org:acme/project:payments
 g, group:teamB, role:proj-deployer, org:acme
+g, group:teamB, role:developer , org:acme/project:greeting
 g, group:teamC, role:developer, org:acme/project:payments/component:hello
+g, group:teamD, role:deployer, org:acme/env:production
+g, group:teamD, role:deployer, org:acme/env:production
 g, group:teamD, role:deployer, org:acme/env:production

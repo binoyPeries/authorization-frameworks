@@ -1,0 +1,26 @@
+p, role:OrgAdmin,             *,                              allow
+p, role:OrgUnitAdmin,         orgUnit:read,                   allow
+p, role:OrgUnitAdmin,         orgUnit:create,                 allow
+p, role:OrgUnitAdmin,         orgUnit:update,                 allow
+p, role:OrgUnitAdmin,         orgUnit:delete,                 allow
+p, role:ProjectAdmin,         project:read,                   allow
+p, role:ProjectAdmin,         project:create,                 allow
+p, role:ProjectAdmin,         project:update,                 allow
+p, role:ProjectAdmin,         project:delete,                 allow
+p, role:dev,                  component:*,                 allow
+p, role:devops,               component:deploy,               allow
+p, role:ProjectAdmin,         component:read,                 allow
+p, role:ProjectAdmin,         component:update,               allow
+p, role:ProjectAdmin,         component:deploy,               allow
+p, role:developer,            component:view,                 allow
+p, role:developer,            log:view,                       allow
+p, role:devb,                 component:update,               allow
+
+
+g, alice,                     role:OrgAdmin,           /org/1/*
+g, team:payments,             role:ProjectAdmin,       /org/1/project/p9/*
+g, bob,                       role:Reader,             /org/1/*
+g, svc:ci-runner,             role:ProjectAdmin,       /org/1/project/p9/*
+g, team:teamA,                role:dev,                /org/1/project/*
+g, team:teamA,                role:devops,             /org/2/project/p9/*
+g, team:teamB,                role:devb,          /org/1/project/p9/*
