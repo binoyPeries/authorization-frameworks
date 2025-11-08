@@ -21,6 +21,6 @@ g, alice,                     role:OrgAdmin,           /org/1/*
 g, team:payments,             role:ProjectAdmin,       /org/1/project/p9/*
 g, bob,                       role:Reader,             /org/1/*
 g, svc:ci-runner,             role:ProjectAdmin,       /org/1/project/p9/*
-g, team:teamA,                role:dev,                /org/1/project/*
+g, team:teamA,                role:dev,                /org/1/project/p8/*
 g, team:teamA,                role:devops,             /org/2/project/p9/*
-g, team:teamB,                role:devb,          /org/1/project/p9/*
+g, team:teamB,                role:devb,               /org/1/project/p9/component/c3
