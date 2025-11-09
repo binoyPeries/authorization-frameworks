@@ -5,7 +5,10 @@ High level Hierarchy mapping for authorization in OpenChoreo is structured as fo
 ```
 Organization (acme)
 ├── Environment (dev, staging, prod)
-├── DeploymentPipeline (promotion workflow)
+├── Org Unit (sales, marketing, engineering)
+|   |_ Project (bounded context - payments, ecommerce, analytics)
+|       └── Component (deployable unit - billing, user-service, catalog)
+|           ├── Build (build artifacts)
 └── Project (bounded context - payments, ecommerce, analytics)
     └── Component (deployable unit - billing, user-service, catalog)
         ├── Build (build artifacts)
@@ -19,3 +22,4 @@ OpenChoreo should implement a hierarchical authorization model where permissions
 ## Frameworks explored
 1. OpenFGA
 2. Casbin
+3. OPA (Open Policy Agent)
