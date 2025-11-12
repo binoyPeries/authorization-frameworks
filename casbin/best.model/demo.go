@@ -17,7 +17,7 @@ type AccessScenario struct {
 }
 
 func main() {
-	enforcer3, err := casbin.NewEnforcer("best.model/model.conf", "best.model/policy.csv")
+	enforcer3, err := casbin.NewEnforcer("model.conf", "policy.csv")
 	if err != nil {
 		log.Fatalf("Error creating enforcer: %v", err)
 	}

@@ -1,36 +1,37 @@
-# Policy definitions (p): role, action, tenant, effect
+# Policy definitions (p): role, action, tenant
 # These define what each role can do within a specific organization
 # Tenant format: org/{orgName}
 
 # org/acme - Role Permissions
-p, role:OrgAdmin,             *,                              org/acme,    allow
-p, role:OrgUnitAdmin,         orgUnit:read,                   org/acme,    allow
-p, role:OrgUnitAdmin,         orgUnit:create,                 org/acme,    allow
-p, role:OrgUnitAdmin,         orgUnit:update,                 org/acme,    allow
-p, role:OrgUnitAdmin,         orgUnit:delete,                 org/acme,    allow
-p, role:ProjectAdmin,         project:read,                   org/acme,    allow
-p, role:ProjectAdmin,         project:create,                 org/acme,    allow
-p, role:ProjectAdmin,         project:update,                 org/acme,    allow
-p, role:ProjectAdmin,         project:delete,                 org/acme,    allow
-p, role:dev,                  component:*,                    org/acme,    allow
-p, role:devops,               component:deploy,               org/acme,    allow
-p, role:ProjectAdmin,         component:read,                 org/acme,    allow
-p, role:ProjectAdmin,         component:update,               org/acme,    allow
-p, role:ProjectAdmin,         component:deploy,               org/acme,    allow
-p, role:developer,            component:view,                 org/acme,    allow
-p, role:developer,            log:view,                       org/acme,    allow
-p, role:Reader,               component:read,                 org/acme,    allow
+p, role:OrgAdmin,             *,                              org/acme
+p, role:OrgUnitAdmin,         orgUnit:read,                   org/acme/ou/1
+p, role:OrgUnitAdmin,         orgUnit:create,                 org/acme
+p, role:OrgUnitAdmin,         orgUnit:update,                 org/acme
+p, role:OrgUnitAdmin,         orgUnit:delete,                 org/acme
+p, role:ProjectAdmin,         project:read,                   org/acme
+p, role:ProjectAdmin,         project:create,                 org/acme
+p, role:ProjectAdmin,         project:update,                 org/acme
+p, role:ProjectAdmin,         project:delete,                 org/acme
+p, role:dev,                  component:*,                    org/acme
+p, role:devops,               component:deploy,               org/acme
+p, role:ProjectAdmin,         component:read,                 org/acme
+p, role:ProjectAdmin,         component:update,               org/acme
+p, role:ProjectAdmin,         component:deploy,               org/acme
+p, role:developer,            component:view,                 org/acme
+p, role:developer,            log:view,                       org/acme
+p, role:Reader,               component:read,                 org/acme
 
 # org/techcorp - Role Permissions (separate from org/acme)
-p, role:OrgAdmin,             *,                              org/techcorp,    allow
-p, role:ProjectAdmin,         project:read,                   org/techcorp,    allow
-p, role:ProjectAdmin,         project:update,                 org/techcorp,    allow
-p, role:ProjectAdmin,         component:*,                    org/techcorp,    allow
-p, role:developer,            component:view,                 org/techcorp,    allow
-p, role:developer,            log:view,                       org/techcorp,    allow
-p, role:devops,               component:deploy,               org/techcorp,    allow
+p, role:OrgAdmin,             *,                              org/techcorp
+p, role:ProjectAdmin,         project:read,                   org/techcorp
+p, role:ProjectAdmin,         project:update,                 org/techcorp
+p, role:ProjectAdmin,         component:*,                    org/techcorp
+p, role:developer,            component:view,                 org/techcorp
+p, role:developer,            log:view,                       org/techcorp
+p, role:devops,               component:deploy,               org/techcorp
 
-p, role:idk, component:create, org/*, allow
+p, role:idk, component:create, org/*
+
 # Role assignments (g): user/group, role_with_tenant, domain
 # Tenant is encoded in role name (e.g., role:OrgAdmin@org/acme)
 # Domain is relative to the organization (no need to include org name in path)
@@ -41,7 +42,7 @@ g, team:payments,             role:ProjectAdmin@org/acme,       /project/p9/*
 g, bob,                       role:Reader@org/acme,             /*
 g, svc:ci-runner,             role:ProjectAdmin@org/acme,       /project/p9/*
 g, team:teamA,                role:dev@org/acme,                /project/p8/*
-g, team:teamB,                role:developer@org/acme,          /project/p9/component/c3
+g, team:teamB,                role:developer@org/acme,          /project/p9/*
 
 # org/techcorp - Role Assignments
 g, alice,                     role:developer@org/techcorp,      /*
