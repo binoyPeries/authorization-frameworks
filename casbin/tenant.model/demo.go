@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/casbin/casbin/v2"
-	"github.com/casbin/casbin/v2/util"
 )
+
+const pathSeparator = "/"
 
 type AccessScenario struct {
 	description string
@@ -17,19 +19,69 @@ type AccessScenario struct {
 	ctx         string
 }
 
-// questions
-// shouldnt /project/p9/* match /project/p9
-// 
 func main() {
 	enforcer, err := casbin.NewEnforcer("model.conf", "policy.csv")
 	if err != nil {
 		log.Fatalf("Error creating enforcer: %v", err)
 	}
 
-	// Add domain matching function for hierarchical paths (parameter 2 in g)
-	// With 3-param g: g(subject, role_with_tenant, domain)
-	// This enables KeyMatch2 for domain matching (e.g., /project/p9/component/c1 matches /project/p9/*)
-	enforcer.AddNamedDomainMatchingFunc("g", "KeyMatch2", util.KeyMatch2)
+	// Custom domain matching with wildcard support
+	// Rules:
+	// 1. If policy domain ends with '*':
+	//    a. If slash count is even (after trim): match descendants (prefix match) ex: "/project/p1/*" matches "/project/p1/component/c1" ,"/project/p1/api/v1/hello/v2"
+	//    b. If slash count is odd (after trim): star is for resource ID (exact level match) ex: "project/p1/component/*" matches "/project/p1/component/c1" but NOT "/project/p1/component/c1/logs/v2"
+	// 2. Otherwise: exact match only
+	domainPrefixMatch := func(requestDomain string, policyDomain string) bool {
+		// Trim both domains once at the start
+		reqDomain := strings.Trim(requestDomain, pathSeparator)
+		polDomain := strings.Trim(policyDomain, pathSeparator)
+
+		// Rule 2: Exact match only no wildcards
+		if !strings.HasSuffix(polDomain, "*") {
+			return reqDomain == polDomain
+		}
+
+		// Rule 1: Policy domain ends with '*'
+		// Get prefix without the trailing '*'
+		prefix := polDomain[:len(polDomain)-1]
+
+		// if request is shorter than prefix, it can't match
+		if len(reqDomain) < len(prefix) {
+			return false
+		}
+
+		// Check prefix match and count slashes simultaneously
+		slashCount := 0
+		for i := 0; i < len(prefix); i++ {
+			if reqDomain[i] != prefix[i] {
+				return false
+			}
+			if prefix[i] == '/' {
+				slashCount++
+			}
+		}
+
+		// Rule 1a: Even slash count - match descendants (prefix match)
+		// Example: "/project/p1/*" (2 slashes after trim) matches "/project/p1/component/c1" and "/project/p1/api/v1/hello/v2"
+		if slashCount%2 == 0 {
+			return true
+		}
+
+		// Rule 1b: Odd slash count - exact level match
+		// Example: "/project/p1/component/*" (3 slashes after trim) matches "/project/p1/component/c1" but NOT "/project/p1/component/c1/logs/v2"
+		// Get the remaining part after the prefix (use slice to avoid allocation)
+		remaining := reqDomain[len(prefix):]
+		remaining = strings.Trim(remaining, pathSeparator)
+
+		// Should have exactly one more segment (no nested paths)n
+		if remaining == "" || strings.Contains(remaining, pathSeparator) {
+			return false
+		}
+
+		return true
+	}
+
+	enforcer.AddNamedDomainMatchingFunc("g", "DomainPrefix", domainPrefixMatch)
 
 	scenarios := []AccessScenario{
 		// ===== ALICE (OrgAdmin in org/acme, developer in org/techcorp) =====
@@ -49,7 +101,7 @@ func main() {
 			tenant:      "org/acme",
 			ctx:         "{}",
 		},
-				{
+		{
 			description: "[SHOULD PASS] team:teamA (developer) can view components in org/acme",
 			subject:     "team:teamA",
 			action:      "component:view",
@@ -61,7 +113,7 @@ func main() {
 			description: "[SHOULD PASS] team:idk (idk) can create components in org/hello",
 			subject:     "team:idk",
 			action:      "component:create",
-			domain:      "/project/p10",
+			domain:      "/project/p10/component/c1",
 			tenant:      "org/hello",
 			ctx:         "{}",
 		},

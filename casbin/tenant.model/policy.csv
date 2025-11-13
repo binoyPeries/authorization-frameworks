@@ -35,19 +35,23 @@ p, role:idk, component:create, org/*
 # Role assignments (g): user/group, role_with_tenant, domain
 # Tenant is encoded in role name (e.g., role:OrgAdmin@org/acme)
 # Domain is relative to the organization (no need to include org name in path)
-
 # org/acme - Role Assignments
-g, alice,                     role:OrgAdmin@org/acme,           /*
-g, team:payments,             role:ProjectAdmin@org/acme,       /project/p9/*
-g, bob,                       role:Reader@org/acme,             /*
-g, svc:ci-runner,             role:ProjectAdmin@org/acme,       /project/p9/*
-g, team:teamA,                role:dev@org/acme,                /project/p8/*
-g, team:teamB,                role:developer@org/acme,          /project/p9/*
+g, alice,                     role:OrgAdmin@org/acme,           /project/p9/component/c1
+g, team:payments,             role:ProjectAdmin@org/acme,       /project/p9
+g, bob,                       role:Reader@org/acme,             /
+g, svc:ci-runner,             role:ProjectAdmin@org/acme,       /project/p9
+g, team:teamA,                role:dev@org/acme,                /project/p8
+g, team:teamB,                role:developer@org/acme,          /project/p9/component/c3
+
+# Wildcard pattern examples (Pattern 2 & 3)
+g, dave,                      role:ProjectAdmin@org/acme,       /project/*
+g, team:platform,             role:devops@org/acme,             /*
+g, svc:backup,                role:Reader@org/acme,             /*/*
 
 # org/techcorp - Role Assignments
-g, alice,                     role:developer@org/techcorp,      /*
-g, team:payments,             role:ProjectAdmin@org/techcorp,   /project/p5/*
-g, team:teamA,                role:devops@org/techcorp,         /project/p9/*
-g, charlie,                   role:OrgAdmin@org/techcorp,       /*
+g, alice,                     role:developer@org/techcorp,      /
+g, team:payments,             role:ProjectAdmin@org/techcorp,   /ctd/p5
+g, team:teamA,                role:devops@org/techcorp,         /traits/p9
+g, charlie,                   role:OrgAdmin@org/techcorp,       /
 
 g, team:idk, role:idk@org/hello, /project/p10/*
