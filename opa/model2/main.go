@@ -24,8 +24,13 @@ type Principal struct {
 }
 
 type Resource struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name    string          `json:"name"`
+	Type    string          `json:"type"`
+	Context ResourceContext `json:"context,omitempty"`
+}
+
+type ResourceContext struct {
+	ToEnv string `json:"toEnv,omitempty"`
 }
 
 type Context struct {
@@ -166,6 +171,30 @@ func main() {
 				"effect":    "allow",
 				"condition": nil,
 			},
+			// Environment-based access control examples
+			map[string]interface{}{
+				"resource": "//openchoreo.orgs/acme/ous/dev",
+				"role":     "roles/env.deployer",
+				"members": []string{
+					"group:devs",
+					"user:alice",
+				},
+				"effect": "allow",
+				"condition": map[string]interface{}{
+					"allowedEnvironments": []string{"development", "staging"},
+				},
+			},
+			map[string]interface{}{
+				"resource": "//openchoreo.orgs/acme",
+				"role":     "roles/env.deployer",
+				"members": []string{
+					"group:prod-ops",
+				},
+				"effect": "allow",
+				"condition": map[string]interface{}{
+					"allowedEnvironments": []string{"production"},
+				},
+			},
 		},
 	}
 
@@ -203,17 +232,39 @@ func main() {
 		expectAllow bool
 		expectDeny  bool
 	}{
+		// {
+		// 	name: "User alice creating component (should ALLOW)",
+		// 	input: AuthzInput{
+		// 		Principal: Principal{
+		// 			ID:     "user:alice",
+		// 			Groups: []string{"group:devs", "group:ou-dev"},
+		// 		},
+		// 		Action: "component.create",
+		// 		Resource: Resource{
+		// 			Name: "//openchoreo.orgs/acme/ous/devs/hello/components/test",
+		// 			Type: "component",
+		// 		},
+		// 		Context: Context{
+		// 			Time: "2025-11-21T09:00:00Z",
+		// 		},
+		// 	},
+		// 	expectAllow: true,
+		// 	expectDeny:  false,
+		// },
 		{
-			name: "User alice creating component (should ALLOW)",
+			name: "Alice deploying to development environment (should ALLOW)",
 			input: AuthzInput{
 				Principal: Principal{
-					ID:     "group:devs",
-					Groups: []string{"group:devs", "group:ou-dev"},
+					ID:     "user:alice",
+					Groups: []string{"group:devs"},
 				},
-				Action: "component.create",
+				Action: "deployment.create",
 				Resource: Resource{
-					Name: "//openchoreo.orgs/",
-					Type: "project",
+					Name: "//openchoreo.orgs/acme/ous/dev/projects/payments/components/api",
+					Type: "component",
+					Context: ResourceContext{
+						ToEnv: "stagingv2",
+					},
 				},
 				Context: Context{
 					Time: "2025-11-21T09:00:00Z",
@@ -222,6 +273,94 @@ func main() {
 			expectAllow: true,
 			expectDeny:  false,
 		},
+		// {
+		// 	name: "Alice deploying to staging environment (should ALLOW)",
+		// 	input: AuthzInput{
+		// 		Principal: Principal{
+		// 			ID:     "user:alice",
+		// 			Groups: []string{"group:devs"},
+		// 		},
+		// 		Action: "deployment.create",
+		// 		Resource: Resource{
+		// 			Name: "//openchoreo.orgs/acme/ous/dev/projects/payments/components/api",
+		// 			Type: "component",
+		// 			Context: ResourceContext{
+		// 				ToEnv: "staging",
+		// 			},
+		// 		},
+		// 		Context: Context{
+		// 			Time: "2025-11-21T09:00:00Z",
+		// 		},
+		// 	},
+		// 	expectAllow: true,
+		// 	expectDeny:  false,
+		// },
+		// {
+		// 	name: "Alice deploying to production environment (should DENY - not in allowed environments)",
+		// 	input: AuthzInput{
+		// 		Principal: Principal{
+		// 			ID:     "user:alice",
+		// 			Groups: []string{"group:devs"},
+		// 		},
+		// 		Action: "deployment.create",
+		// 		Resource: Resource{
+		// 			Name: "//openchoreo.orgs/acme/ous/dev/projects/payments/components/api",
+		// 			Type: "component",
+		// 			Context: ResourceContext{
+		// 				ToEnv: "production",
+		// 			},
+		// 		},
+		// 		Context: Context{
+		// 			Time: "2025-11-21T09:00:00Z",
+		// 		},
+		// 	},
+		// 	expectAllow: false,
+		// 	expectDeny:  false,
+		// },
+		// {
+		// 	name: "prod-ops deploying to production (should ALLOW)",
+		// 	input: AuthzInput{
+		// 		Principal: Principal{
+		// 			ID:     "user:prod-admin",
+		// 			Groups: []string{"group:prod-ops"},
+		// 		},
+		// 		Action: "deployment.create",
+		// 		Resource: Resource{
+		// 			Name: "//openchoreo.orgs/acme/ous/prod/projects/billing/components/api",
+		// 			Type: "component",
+		// 			Context: ResourceContext{
+		// 				ToEnv: "production",
+		// 			},
+		// 		},
+		// 		Context: Context{
+		// 			Time: "2025-11-21T09:00:00Z",
+		// 		},
+		// 	},
+		// 	expectAllow: true,
+		// 	expectDeny:  false,
+		// },
+		// {
+		// 	name: "prod-ops deploying to development (should DENY - not in allowed environments)",
+		// 	input: AuthzInput{
+		// 		Principal: Principal{
+		// 			ID:     "user:prod-admin",
+		// 			Groups: []string{"group:prod-ops"},
+		// 		},
+		// 		Action: "deployment.create",
+		// 		Resource: Resource{
+		// 			Name: "//openchoreo.orgs/acme/ous/dev/projects/payments/components/api",
+		// 			Type: "component",
+		// 			Context: ResourceContext{
+		// 				ToEnv: "development",
+		// 			},
+		// 		},
+		// 		Context: Context{
+		// 			Time: "2025-11-21T09:00:00Z",
+		// 		},
+		// 	},
+		// 	expectAllow: false,
+		// 	expectDeny:  false,
+		// },
 		// {
 		// 	name: "User eve with explicit deny (should DENY)",
 		// 	input: AuthzInput{

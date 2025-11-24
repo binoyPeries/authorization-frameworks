@@ -14,10 +14,13 @@ import future.keywords.every
 #     "id": "user:alice",
 #     "groups": ["group:devs", "group:ou-dev"]
 #   },
-#   "action": "component.create",
+#   "action": "deployment.create",
 #   "resource": {
-#     "name": "//openchoreo.orgs/acme/ous/dev/projects/payments",
-#     "type": "project"
+#     "name": "//openchoreo.orgs/acme/ous/dev/projects/payments/components/api",
+#     "type": "component",
+#     "context": {
+#       "toEnv": "development"
+#     }
 #   },
 #   "context": {
 #     "time": "2025-11-21T09:00:00Z"
@@ -43,8 +46,26 @@ import future.keywords.every
 #     "resource": "//openchoreo.orgs/acme",
 #     "role": "roles/component.developer",
 #     "members": ["group:devs"],
-#     "effect": "allow",         # "allow" | "deny"
-#     "condition": null          # kept in model, ignored by policy for now
+#     "effect": "allow",
+#     "condition": null
+#   },
+#   {
+#     "resource": "//openchoreo.orgs/acme/ous/dev",
+#     "role": "roles/env.deployer",
+#     "members": ["group:devs"],
+#     "effect": "allow",
+#     "condition": {
+#       "allowedEnvironments": ["development", "staging"]
+#     }
+#   },
+#   {
+#     "resource": "//openchoreo.orgs/acme",
+#     "role": "roles/env.deployer",
+#     "members": ["group:prod-ops"],
+#     "effect": "allow",
+#     "condition": {
+#       "allowedEnvironments": ["production"]
+#     }
 #   }
 # ]
 #
@@ -178,34 +199,38 @@ role_has_permission(role, action) {
 }
 
 #
-# =================
-# CONDITIONS (STUB)
-# =================
+# ===================
+# CONDITION EVALUATION
+# ===================
 #
-# Condition is kept in the model (for future use),
-# but currently DOES NOT influence allow/deny.
+# Validates binding conditions, including environment restrictions
 #
 
-conditions_ok(_cond) {
-    # Always true for now; hook real logic here later.
-    true
+# No condition specified - always passes
+conditions_ok(cond) {
+    cond == null
 }
 
-#
-# =======================
-# OPTIONAL: ENV COUPLING
-# =======================
-#
-# Example helper if later you want env-specific checks.
-# Not wired into allow/deny by default.
-#
+# Condition has allowedEnvironments - validate target environment
+conditions_ok(cond) {
+    cond != null
+    cond.allowedEnvironments
 
-# has_permission_on_resource(principal, action, resource_name)
-has_permission_on_resource(principal, action, resource_name) {
-    b := data.iam.bindings[_]
+    # Get target environment from context or resource
+    target_env := get_target_environment
 
-    resource_applies(b.resource, resource_name)
-    member_matches(b.members, principal)
-    role_has_permission(b.role, action)
-    conditions_ok(b.condition)
+    # Check if target environment is in the allowed list
+    target_env == cond.allowedEnvironments[_]
+}
+
+# Condition exists but no allowedEnvironments specified - passes
+conditions_ok(cond) {
+    cond != null
+    not cond.allowedEnvironments
+}
+
+# Helper to get the target environment from input
+get_target_environment = env {
+    # Get from resource.context.toEnv
+    env := input.resource.context.toEnv
 }
