@@ -1,0 +1,9 @@
+p, group:devs,     //openchoreo.orgs/acme,         roles/component.developer,   allow, "{""allowedEnvironments"":[""development""]}"
+p, group:devs,     //openchoreo.orgs/acme/ous/dev, roles/env.deployer,          allow, "{""allowedEnvironments"":[""development""]}"
+p, group:prod-ops, //openchoreo.orgs/acme,         roles/env.deployer,          allow, "{""allowedEnvironments"":[""production""]}"
+
+g, component.create,          roles/component.developer
+g, component.read,            roles/component.developer
+g, component.update,          roles/component.developer
+g, deployment.create,         roles/env.deployer
+g, deployment.read,           roles/env.deployer
