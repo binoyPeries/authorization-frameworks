@@ -10,13 +10,10 @@ import future.keywords.every
 # Expected input:
 #
 # {
-#   "principal": {
-#     "id": "user:alice",
-#     "groups": ["group:devs", "group:ou-dev"]
-#   },
+#   "groups": ["group:devs", "group:ou-dev"],
 #   "action": "deployment.create",
 #   "resource": {
-#     "name": "//openchoreo.orgs/acme/ous/dev/projects/payments/components/api",
+#     "name": "org/acme/ou/dev/project/payments/component/api",
 #     "type": "component",
 #     "context": {
 #       "toEnv": "development"
@@ -43,25 +40,25 @@ import future.keywords.every
 #
 # data.iam.bindings = [
 #   {
-#     "resource": "//openchoreo.orgs/acme",
+#     "resource": "org/acme",
 #     "role": "roles/component.developer",
-#     "members": ["group:devs"],
+#     "group": "group:devs",
 #     "effect": "allow",
 #     "condition": null
 #   },
 #   {
-#     "resource": "//openchoreo.orgs/acme/ous/dev",
+#     "resource": "org/acme/ou/dev",
 #     "role": "roles/env.deployer",
-#     "members": ["group:devs"],
+#     "group": "group:devs",
 #     "effect": "allow",
 #     "condition": {
 #       "allowedEnvironments": ["development", "staging"]
 #     }
 #   },
 #   {
-#     "resource": "//openchoreo.orgs/acme",
+#     "resource": "org/acme",
 #     "role": "roles/env.deployer",
-#     "members": ["group:prod-ops"],
+#     "group": "group:prod-ops",
 #     "effect": "allow",
 #     "condition": {
 #       "allowedEnvironments": ["production"]
@@ -92,35 +89,49 @@ deny {
 
 #
 # ==================
-# BINDING EVALUATION
+# BINDING EVALUATION (Single Pass)
 # ==================
 #
+# Collect all matching bindings in a single iteration
+# then check their effects
+#
 
-binding_allows {
+# Get all bindings that match the current request
+matching_bindings[b] {
     b := data.iam.bindings[_]
-    b.effect == "allow"
     binding_matches(b)
 }
 
+# Check if any matching binding has allow effect
+binding_allows {
+    b := matching_bindings[_]
+    b.effect == "allow"
+}
+
+# Check if any matching binding has deny effect
 binding_denies {
-    b := data.iam.bindings[_]
+    b := matching_bindings[_]
     b.effect == "deny"
-    binding_matches(b)
 }
 
 # Core predicate: does this binding apply to the current input?
+# Ordered from cheapest to most expensive checks for early exit optimization
 binding_matches(b) {
-    # 1) Scope / hierarchy
-    resource_applies(b.resource, input.resource.name)
+    # 1) Group match (CHEAPEST: simple array membership check)
+    #    Filters out most bindings immediately
+    group_matches(b.group, input.groups)
 
-    # 2) Principal membership (user or any of their groups)
-    member_matches(b.members, input.principal)
-
-    # 3) Role grants the requested action
+    # 2) Role grants the requested action (MEDIUM: hash lookup + array scan)
+    #    Cheaper than path parsing
     role_has_permission(b.role, input.action)
 
-    # 4) Conditions exist in the model but are ignored for now
+    # 3) Conditions evaluation (MEDIUM: varies by condition complexity)
+    #    Usually just null check or simple comparisons
     conditions_ok(b.condition)
+
+    # 4) Scope / hierarchy (MOST EXPENSIVE: path splitting + segment comparison)
+    #    Do this last to minimize expensive path operations
+    resource_applies(b.resource, input.resource.name)
 }
 
 #
@@ -132,8 +143,8 @@ binding_matches(b) {
 # resource_applies(binding_resource, requested_resource)
 #
 # Example:
-#  binding_resource   = "//openchoreo.orgs/acme/ous/dev"
-#  requested_resource = "//openchoreo.orgs/acme/ous/dev/projects/p1/components/c1"
+#  binding_resource   = "org/acme/ou/dev"
+#  requested_resource = "org/acme/ou/dev/project/p1/component/c1"
 #
 #  => true (requested is inside binding scope)
 #
@@ -142,48 +153,31 @@ resource_applies(binding_res, req_res) {
 }
 
 # path_prefix("a/b", "a/b/c/d") == true
-# Prefix test done on path segments, not raw string, to avoid
+# Uses startswith() for optimal performance.
+# Handles exact match and ensures segment boundary to avoid
 # mismatches like "foo/bar" vs "foo/barista".
 path_prefix(binding_res, req_res) {
-    bs := split_path(binding_res)
-    rs := split_path(req_res)
-
-    count(bs) <= count(rs)
-
-    # Check all segments match by ensuring no mismatches exist
-    not has_segment_mismatch(bs, rs)
+    # Exact match
+    binding_res == req_res
 }
 
-# Helper to check if there's any segment mismatch
-has_segment_mismatch(bs, rs) {
-    bs[i] != rs[i]
-}
-
-# Split canonical resource name into segments, ignoring leading "//"
-# e.g. "//openchoreo.orgs/acme/ous/dev" -> ["openchoreo.orgs", "acme", "ous", "dev"]
-split_path(p) = segs {
-    no_scheme := trim_prefix(p, "//")
-    segs := split(no_scheme, "/")
+path_prefix(binding_res, req_res) {
+    startswith(req_res, concat("", [binding_res, "/"]))
 }
 
 #
 # =======================
-# PRINCIPAL / MEMBERSHIP
+# GROUP MATCHING
 # =======================
 #
 
-# member_matches(binding_members, principal)
+# group_matches(binding_group, input_groups)
 #
-# A binding can list user IDs or groups:
-#   "members": ["user:alice", "group:devs"]
+# Check if the binding's group is in the input's groups array
 #
-member_matches(members, principal) {
-    # Direct user match
-    principal.id == members[_]
-} else {
-    # Group membership match
-    g := principal.groups[_]
-    g == members[_]
+group_matches(binding_group, input_groups) {
+    # At least one input group matches the binding group
+    binding_group == input_groups[_]
 }
 
 #
@@ -233,4 +227,92 @@ conditions_ok(cond) {
 get_target_environment = env {
     # Get from resource.context.toEnv
     env := input.resource.context.toEnv
+}
+
+
+#
+# ================
+# PROFILE GENERATION
+# ================
+#
+# Goal:
+#   For a given principal (and optional context like env),
+#   return a flat list of scopes with actions.
+#
+# Input shape for profile queries:
+#
+# {
+#   "groups": ["group:devs", "group:ou-dev"],
+#   "resource": {
+#     "context": {
+#       "toEnv": "development"
+#     }
+#   }
+# }
+#
+# Note: Profile queries don't require resource.name since we're listing
+#       all scopes the user has access to.
+#
+# Note:
+#   - We reuse conditions_ok(cond) from the main policy.
+#   - For env based conditions, set input.resource.context.toEnv in the profile query.
+#
+
+#
+# Each binding expanded to (scope, action) if it applies to the principal
+#
+profile_flat_bindings[entry] {
+    b := data.iam.bindings[_]
+    b.effect == "allow"
+
+    # At least one input group matches the binding group
+    group_matches(b.group, input.groups)
+
+    # Conditions are satisfied under the profile input context
+    conditions_ok(b.condition)
+
+    # For each permission granted by the role, treat it as an action
+    action := data.roles[b.role][_]
+
+    entry := {
+        "scope":  b.resource,  # resource path, eg org/acme/ou/dev
+        "action": action,
+    }
+}
+
+#
+# Set of all scopes where this principal has at least one allowed action
+#
+profile_scopes[scope] {
+    e := profile_flat_bindings[_]
+    scope := e.scope
+}
+
+#
+# Aggregated view per scope:
+#   - scope: resource path
+#   - actions: set of allowed actions at that scope
+#
+# Query:
+#   data.openchoreo.authz.profile_flat_agg
+#
+# Example result:
+# [
+#   {"scope": "org/acme", "actions": {"component.create", "component.read"}},
+#   {"scope": "org/acme/ou/dev", "actions": {"deployment.create"}}
+# ]
+#
+profile_flat_agg[entry] {
+    scope := profile_scopes[_]
+
+    actions := { action |
+        e := profile_flat_bindings[_]
+        e.scope == scope
+        action := e.action
+    }
+
+    entry := {
+        "scope":   scope,
+        "actions": actions,
+    }
 }
