@@ -17,9 +17,25 @@ type AccessScenario struct {
 	ctx          string   // Context JSON (e.g., {"environment":"production"})
 }
 
-// prefixMatch checks if the request resourcePath starts with the policy resourcePath prefix
-func prefixMatch(reqResourcePath, polResourcePath string) bool {
-	return reqResourcePath == polResourcePath || strings.HasPrefix(reqResourcePath, polResourcePath+"/")
+// resourceHierarchyMatch checks if the request resource matches the policy resource hierarchy
+func resourceHierarchyMatch(reqResource, polResource string) bool {
+	return reqResource == polResource || strings.HasPrefix(reqResource, polResource+"/")
+}
+
+// actionMatch checks if the request action matches the policy action pattern (supports wildcards like component:*)
+func actionMatch(reqAction, polActionPattern string) bool {
+	// Exact match
+	if reqAction == polActionPattern {
+		return true
+	}
+
+	// Wildcard pattern matching (e.g., "component:*" matches "component:create", "component:read")
+	if strings.HasSuffix(polActionPattern, ":*") {
+		prefix := strings.TrimSuffix(polActionPattern, ":*")
+		return strings.HasPrefix(reqAction, prefix+":")
+	}
+
+	return false
 }
 
 // ctxAllowed checks if the request context satisfies the policy conditions
@@ -66,94 +82,99 @@ func main() {
 	}
 
 	// Register custom functions for the matcher
-	enforcer3.AddFunction("prefixMatch", func(args ...interface{}) (interface{}, error) {
-		reqResourcePath := args[0].(string)
-		polResourcePath := args[1].(string)
-		return prefixMatch(reqResourcePath, polResourcePath), nil
+	enforcer3.AddFunction("resourceHierarchyMatch", func(args ...interface{}) (interface{}, error) {
+		reqResource := args[0].(string)
+		polResource := args[1].(string)
+		return resourceHierarchyMatch(reqResource, polResource), nil
 	})
 	enforcer3.AddFunction("ctxAllowed", func(args ...interface{}) (interface{}, error) {
 		reqCtx := args[0].(string)
 		polCond := args[1].(string)
 		return ctxAllowed(reqCtx, polCond), nil
 	})
+
+	// Add custom role matcher function to support action wildcards
+	enforcer3.AddNamedMatchingFunc("g", "", func(arg1, arg2 string) bool {
+		return actionMatch(arg1, arg2)
+	})
 	scenariosSet3 := []AccessScenario{
 		{
-			description:  "group:devs can create components under //openchoreo.orgs/acme",
-			subjects:     []string{"group:devs"},
-			action:       "component.create",
-			resourcePath: "//openchoreo.orgs/acme/project/p1/component/c1",
+			description:  "group:devs can create components under orgs/acme",
+			subjects:     []string{"group:qa"},
+			action:       "component:create",
+			resourcePath: "orgs/acme/project/p1/component/c1",
 			ctx:          "{\"environment\":\"development\"}",
 		},
-		{
-			description:  "group:devs can read components under //openchoreo.orgs/acme",
-			subjects:     []string{"group:devs"},
-			action:       "component.read",
-			resourcePath: "//openchoreo.orgs/acme/project/p2/component/c1",
-			ctx:          "{\"environment\":\"development\"}",
-		},
-		{
-			description:  "group:devs can update components under //openchoreo.orgs/acme",
-			subjects:     []string{"group:devs"},
-			action:       "component.update",
-			resourcePath: "//openchoreo.orgs/acme",
-			ctx:          "{\"environment\":\"development\"}",
-		},
-		{
-			description:  "group:devs can deploy in dev environment (context condition)",
-			subjects:     []string{"group:devs"},
-			action:       "deployment.create",
-			resourcePath: "//openchoreo.orgs/acme/ous/dev/env/development",
-			ctx:          "{\"environment\":\"development\"}",
-		},
-		{
-			description:  "group:devs CANNOT deploy in prod environment (fails context condition)",
-			subjects:     []string{"group:devs"},
-			action:       "deployment.create",
-			resourcePath: "//openchoreo.orgs/acme/ous/dev/env/production",
-			ctx:          "{\"environment\":\"production\"}",
-		},
-		{
-			description:  "group:prod-ops can deploy in production (context condition)",
-			subjects:     []string{"group:prod-ops"},
-			action:       "deployment.create",
-			resourcePath: "//openchoreo.orgs/acme/env/production",
-			ctx:          "{\"environment\":\"production\"}",
-		},
-		{
-			description:  "group:prod-ops can read deployments in production",
-			subjects:     []string{"group:prod-ops"},
-			action:       "deployment.read",
-			resourcePath: "//openchoreo.orgs/acme",
-			ctx:          "{\"environment\":\"production\"}",
-		},
-		{
-			description:  "unknown group cannot access anything",
-			subjects:     []string{"group:unknown"},
-			action:       "component.read",
-			resourcePath: "//openchoreo.orgs/acme",
-			ctx:          "{}",
-		},
-		{
-			description:  "group:devs cannot access different org",
-			subjects:     []string{"group:devs"},
-			action:       "component.read",
-			resourcePath: "//openchoreo.orgs/different-org",
-			ctx:          "{}",
-		},
-		{
-			description:  "user with multiple groups - at least one has permission",
-			subjects:     []string{"group:unknown", "group:devs", "group:guests"},
-			action:       "component.read",
-			resourcePath: "//openchoreo.orgs/acme",
-			ctx:          "{\"environment\":\"development\"}",
-		},
-		{
-			description:  "user with multiple groups - none have permission",
-			subjects:     []string{"group:unknown", "group:guests"},
-			action:       "component.read",
-			resourcePath: "//openchoreo.orgs/acme",
-			ctx:          "{\"environment\":\"development\"}",
-		},
+		// {
+		// 	description:  "group:devs can read components under orgs/acme",
+		// 	subjects:     []string{"group:devs"},
+		// 	action:       "component:read",
+		// 	resourcePath: "orgs/acme/project/p2/component/c1",
+		// 	ctx:          "{\"environment\":\"development\"}",
+		// },
+		// {
+		// 	description:  "group:devs can update components under orgs/acme",
+		// 	subjects:     []string{"group:devs"},
+		// 	action:       "component:update",
+		// 	resourcePath: "orgs/acme",
+		// 	ctx:          "{\"environment\":\"development\"}",
+		// },
+		// {
+		// 	description:  "group:devs can deploy in dev environment (context condition)",
+		// 	subjects:     []string{"group:devs"},
+		// 	action:       "deployment:create",
+		// 	resourcePath: "orgs/acme/ous/dev/env/development",
+		// 	ctx:          "{\"environment\":\"development\"}",
+		// },
+		// {
+		// 	description:  "group:devs CANNOT deploy in prod environment (fails context condition)",
+		// 	subjects:     []string{"group:devs"},
+		// 	action:       "deployment:create",
+		// 	resourcePath: "orgs/acme/ous/dev/env/production",
+		// 	ctx:          "{\"environment\":\"production\"}",
+		// },
+		// {
+		// 	description:  "group:prod-ops can deploy in production (context condition)",
+		// 	subjects:     []string{"group:prod-ops"},
+		// 	action:       "deployment:create",
+		// 	resourcePath: "orgs/acme/env/production",
+		// 	ctx:          "{\"environment\":\"production\"}",
+		// },
+		// {
+		// 	description:  "group:prod-ops can read deployments in production",
+		// 	subjects:     []string{"group:prod-ops"},
+		// 	action:       "deployment:read",
+		// 	resourcePath: "orgs/acme",
+		// 	ctx:          "{\"environment\":\"production\"}",
+		// },
+		// {
+		// 	description:  "unknown group cannot access anything",
+		// 	subjects:     []string{"group:unknown"},
+		// 	action:       "component:read",
+		// 	resourcePath: "orgs/acme",
+		// 	ctx:          "{}",
+		// },
+		// {
+		// 	description:  "group:devs cannot access different org",
+		// 	subjects:     []string{"group:devs"},
+		// 	action:       "component:read",
+		// 	resourcePath: "orgs/different-org",
+		// 	ctx:          "{}",
+		// },
+		// {
+		// 	description:  "user with multiple groups - at least one has permission",
+		// 	subjects:     []string{"group:unknown", "group:devs", "group:guests"},
+		// 	action:       "component:read",
+		// 	resourcePath: "orgs/acme",
+		// 	ctx:          "{\"environment\":\"development\"}",
+		// },
+		// {
+		// 	description:  "user with multiple groups - none have permission",
+		// 	subjects:     []string{"group:unknown", "group:guests"},
+		// 	action:       "component:read",
+		// 	resourcePath: "orgs/acme",
+		// 	ctx:          "{\"environment\":\"development\"}",
+		// },
 	}
 
 	// Test Profile Service
@@ -180,6 +201,7 @@ func listAllRoles(enforcer *casbin.Enforcer) {
 // Requirement: Check whether user can perform action X on resource Y
 func testAccessChecks(enforcer *casbin.Enforcer, scenarios []AccessScenario) {
 	for _, scenario := range scenarios {
+		enforcer.GetPolicy()
 		// Check if at least one group in the subjects array has permission
 		hasPermission := false
 		for _, subject := range scenario.subjects {

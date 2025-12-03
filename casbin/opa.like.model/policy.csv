@@ -1,9 +1,10 @@
-p, group:devs,     //openchoreo.orgs/acme,         roles/component.developer,   allow, "{""allowedEnvironments"":[""development""]}"
-p, group:devs,     //openchoreo.orgs/acme/ous/dev, roles/env.deployer,          allow, "{""allowedEnvironments"":[""development""]}"
-p, group:prod-ops, //openchoreo.orgs/acme,         roles/env.deployer,          allow, "{""allowedEnvironments"":[""production""]}"
+p, group:devs,     orgs/acme,         roles/component.developer,   allow, "{""allowedEnvironments"":[""development""]}"
+p, group:devs,     orgs/acme/ous/dev, roles/env.deployer,          allow, "{""allowedEnvironments"":[""development""]}"
+p, group:prod-ops, orgs/acme,         roles/env.deployer,          allow, "{""allowedEnvironments"":[""production""]}"
+p, group:qa,       orgs/acme,         roles/tester,                allow, "{}"
 
-g, component.create,          roles/component.developer
-g, component.read,            roles/component.developer
-g, component.update,          roles/component.developer
-g, deployment.create,         roles/env.deployer
-g, deployment.read,           roles/env.deployer
+g, roles/component.developer, component:*
+g, roles/env.deployer,        deployment:*
+g, roles/tester,          organization:*
+g, roles/tester,          component:create
+g, group:devs,     *
