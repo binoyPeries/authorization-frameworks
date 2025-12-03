@@ -7,4 +7,4 @@ g, roles/component.developer, component:*
 g, roles/env.deployer,        deployment:*
 g, roles/tester,          organization:*
 g, roles/tester,          component:create
-g, group:devs,     *
+g, roles/admin,     *
